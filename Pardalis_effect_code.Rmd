@@ -1,0 +1,72 @@
+---
+title: "Pardalis effect"
+author: "Vanesa Bejarano Alegre"
+date: "10/26/2020"
+output: word_document
+---
+#Prepare data
+
+## Install and load packages
+```{r Packages, message=FALSE, warning=FALSE}
+
+rm(list= ls())  #clean all before to start
+
+library(tidyverse)
+
+```
+
+### R Packages
+**_Tidyverse_** is a collection of R-packages designed for data science.
+
+## Set working directory and load data
+
+```{r Directory, message=FALSE}
+
+setwd("D:\\_R_world\\Disciplina_Geoespacial\\projeto\\R")
+
+carnivores <- read.csv('NEOTROPICAL_CARNIVORES_DATASET_2020-04.csv', header = T, sep = ',', dec = '.', comment.char = '')
+
+```
+
+### Mehod filter (Camera trap)
+First we know the levels that the methods have and then filter those of our interest
+```{r levels,}
+
+carnivores$METHOD <- as.factor(carnivores$METHOD)
+levels(carnivores$METHOD)
+
+```
+
+```{r filter method, message= FALSE}
+
+camtrap <- c("Active searching, Camera trap", "Camera trap", "Active searching, Camera trap, Opportunistic", "Active searching, Camera trap, People reports","Arboreal Camera trap","Camera trap, Line transect", "Camera trap, Nest boxes", "Camera trap, Olfactory attraction station, Transect", "Camera trap, Opportunistic", "Camera trap, Opportunistic, Scat sampling", "Camera trap, Sign", "Olfactory attraction station, Camera trap")
+
+carncamtrap <-  filter(carnivores, METHOD %in% camtrap)
+
+#filter to occurence
+carn <- filter(carncamtrap, OCCUR == 1)
+
+```
+
+### Species filter
+```{r levels  species,}
+
+carn$SPECIES <- as.factor(carn$SPECIES)
+levels(carn$SPECIES)
+
+```
+
+```{r}
+sp <-  c("Cerdocyon thous", "Herpailurus yagouaroundi",
+         "Leopardus pardalis", "Leopardus tigrinus", "Leopardus wiedii")
+
+# Filter
+
+spcarn <- filter(carn, SPECIES %in% sp)
+
+```
+
+
+
+
+
