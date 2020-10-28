@@ -1,5 +1,5 @@
 #' ---
-#' title: mammals
+#' title: Pardalis effect
 #' author: 
 #' date: 2020-10-28
 #' ---
