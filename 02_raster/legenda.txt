@@ -1,0 +1,6 @@
+legenda
+1 == forest
+2 == silviculture
+3 == grassland
+4 == antropic
+5 == water
