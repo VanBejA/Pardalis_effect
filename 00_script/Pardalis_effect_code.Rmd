@@ -18,6 +18,9 @@ library(sf)
 library(raster)
 library(ecospat)
 library(rnaturalearth)
+library(rgdal)
+library(ordinal)
+library(ggstatsplot)
 
 ```
 
@@ -36,6 +39,8 @@ unzip(zipfile = here::here("01_communities", "ecy3128-sup-0001-DataS1.zip"),
       exdir = here::here("01_communities"))
 
 carnivores <- readr::read_csv(here::here("01_communities", "NEOTROPICAL_CARNIVORES_DATASET_2020-04.csv"))
+
+landcover <- raster(here::here("02_raster",  "mapbiomas_1km.tif")) 
 ```
 
 ### Mehod filter (Camera trap)
@@ -89,13 +94,13 @@ plot(sp_v$geometry, pch = 20)
 ```
 ### 1 km Hexagons
 ```{r Hex,}
-sa <- rnaturalearth::ne_countries(continent = "South America", returnclass = "sf")
-sa
+br <- rnaturalearth::ne_countries(country = "Brazil", returnclass = "sf")
+br
 
-sa_hex <- sf::st_make_grid(sa, cellsize = 1, square = FALSE) %>% 
+br_hex <- sf::st_make_grid(br, cellsize = 1, square = FALSE) %>% 
   sf::st_as_sf()
 
-sa_hex %>%  plot
+br_hex %>%  plot
 
 ```
 
@@ -105,6 +110,7 @@ pardalis <- dplyr::filter(sp, SPECIES == "Leopardus pardalis")
 jaguarundi <- dplyr::filter(sp, SPECIES == "Herpailurus yagouaroundi")
 tigrinus <- dplyr::filter(sp, SPECIES == "Leopardus tigrinus")
 wiedii <- dplyr::filter(sp, SPECIES == "Leopardus wiedii")
+cachorro <- dplyr::filter(sp, SPECIES == "Cerdocyon thous")
 
 ```
 
@@ -131,10 +137,56 @@ wiediiv <- wiedii %>%
   dplyr::mutate(lon = LONG_X, lat = LAT_Y) %>% 
   sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
+cachorrov <- cachorro %>% 
+  tidyr::drop_na(LONG_X, LAT_Y) %>% 
+  dplyr::mutate(lon = LONG_X, lat = LAT_Y) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+```
+
+```{r species count in Hex, message=FALSE}
+sp_hex <- br_hex %>% 
+  dplyr::mutate(pardalis = sf::st_intersects(x = ., pardalisv) %>% lengths())%>%   
+  dplyr::mutate(jaguarundi = sf::st_intersects(x = ., jaguarundiv) %>% lengths()) %>% 
+  dplyr::mutate(tigrinus = sf::st_intersects(x = ., tigrinusv) %>% lengths()) %>% 
+  dplyr::mutate(wiedii = sf::st_intersects(x = ., wiediiv) %>% lengths()) %>% 
+  dplyr::mutate(cachorro = sf::st_intersects(x = ., cachorrov) %>% lengths()) 
+```
+
+```{r landcover zonal,}
+landvalue <- raster::extract(x= landcover, y= br_hex, fun= mean, na.rm= TRUE)
+```
+
+###create datafram
+
+```{r dataframe}
+dados_sp <- sp_hex
+dados_sp$landmean <- landvalue
+
+#List eliminated
+dados_sp$x <- NULL
+write.table(dados_sp ,file="dados_sp.csv",row.names = F,quote=F,col.names=T,sep="\t")
+
 ```
 
 ```{r}
-sp_hex_count <- sa_hex %>% 
-  dplyr::mutate(jaguarundiv = sf::st_intersects(x = ., sa) %>% lengths())
+dados_carn <- readr::read_csv(here::here("01_communities", "dados_sp.csv"))
+```
+
+```{r statistic, }
+#Hipothesis
+dados_carn$pardalis <- as.factor(dados_carn$pardalis)
+
+mod <- ordinal::clm(formula= pardalis ~ jaguarundi + tigrinus+ wiedii+ cachorro, data = dados_carn)
+
+summary(mod)
+
+gg <- ggstatsplot::ggcoefstats(
+  x = mod,
+  stats.label.color = "black",
+  title = "cumulative link model (clm)"
+  ) +
+  ggplot2::labs(x = "logit regression coefficient", y = NULL)
+
 ```
 
